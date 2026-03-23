@@ -10,8 +10,8 @@ import SwiftUI
 @main
 struct PlantaxAppApp: App {
     var body: some Scene {
-        WindowGroup {
-            PlannerView()
+        DocumentGroup(newDocument: PlanDocument()) { file in
+            PlannerView(document: file.$document)
         }
     }
 }

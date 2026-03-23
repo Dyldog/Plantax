@@ -8,36 +8,41 @@
 import SwiftUI
 import Combine
 
+struct CompiledPlan: Identifiable, Hashable {
+    let id = UUID()
+    let events: [FixedEvent]
+}
+
 class PlannerViewModel: ObservableObject, EventCompiler {
     @Published var errorMessage: String?
-    @Published var events: [FixedEvent]?
+    @Published var compiledPlan: CompiledPlan?
     
     func didTapShow(with input: String) {
         do {
-            events = try compileEvents(input)
+            compiledPlan = CompiledPlan(events: try compileEvents(input))
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 }
 
-
 struct PlannerView: View {
-    @StateObject var viewModel: PlannerViewModel = .init()
+    @Binding var document: PlanDocument
+    @StateObject private var viewModel: PlannerViewModel = .init()
     
     var body: some View {
         NavigationStack {
-            EditorView { input in
+            EditorView(text: $document.text) { input in
                 viewModel.didTapShow(with: input)
             }
-            .navigationTitle("Planana")
             .alert(item: $viewModel.errorMessage) { message in
                 Alert(title: Text("Error"), message: Text(message))
             }
-            .navigationDestination(item: $viewModel.events) { events in
-                NewContentView(events: events)
+            .navigationDestination(item: $viewModel.compiledPlan) { plan in
+                NewContentView(events: plan.events)
             }
         }
+        .hidingParentNavigationBar()
     }
 }
 
