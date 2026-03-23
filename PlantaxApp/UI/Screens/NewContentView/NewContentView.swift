@@ -15,16 +15,14 @@ struct NewContentView: View {
     }
     
     var body: some View {
-//        TimelineView(.everyMinute) { _ in
-            List {
-                ForEach(viewModel.rows, id: \.self) { model in
-                    row(with: model)
-                }
-                .listRowInsets(.init())
+        List {
+            ForEach(viewModel.rows) { model in
+                row(with: model)
             }
-            .listStyle(.plain)
-            .navigationTitle("Plan")
-//        }
+            .listRowInsets(.init())
+        }
+        .listStyle(.plain)
+        .navigationTitle("Plan")
     }
     
     @ViewBuilder
@@ -33,17 +31,25 @@ struct NewContentView: View {
         case let .dateHeader(label):
             dateHeader(label)
         case let .event(event):
-            row(
-                with: event.title,
-                timeDescription: event.timeDescription,
-                time: event.time,
-                occurrence: event.occurrence)
+            if event.isChild {
+                childRow(with: event)
+            } else if event.hasChildren {
+                parentRow(with: event)
+            } else {
+                eventRow(
+                    with: event.title,
+                    timeDescription: event.timeDescription,
+                    time: event.time,
+                    occurrence: event.occurrence
+                )
+            }
         case let .freeTime(event):
-            row(
+            eventRow(
                 with: event.title,
                 timeDescription: event.timeDescription,
                 time: event.time,
-                occurrence: event.occurrence)
+                occurrence: event.occurrence
+            )
             .background(.gray.opacity(0.4))
             .foregroundStyle(.white)
         }
@@ -57,8 +63,58 @@ struct NewContentView: View {
             .background(Color(.systemGroupedBackground))
     }
     
+    // MARK: - Parent Row (collapsible)
+    
+    private func parentRow(with model: NewContentRowModel) -> some View {
+        let isCollapsed = viewModel.collapsedParents.contains(model.id)
+        
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                viewModel.toggleCollapse(for: model.id)
+            }
+        } label: {
+            HStack(spacing: 0) {
+                eventRow(
+                    with: model.title,
+                    timeDescription: model.timeDescription,
+                    time: model.time,
+                    occurrence: model.occurrence
+                )
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                    .padding(.trailing)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+    
+    // MARK: - Child Row (indented with vertical bar)
+    
+    private func childRow(with model: NewContentRowModel) -> some View {
+        HStack(spacing: 0) {
+            // Vertical bar
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color.accentColor.opacity(0.5))
+                .frame(width: 3)
+                .padding(.leading, 20)
+            
+            eventRow(
+                with: model.title,
+                timeDescription: model.timeDescription,
+                time: model.time,
+                occurrence: model.occurrence
+            )
+            .padding(.leading, 4)
+        }
+    }
+    
+    // MARK: - Base Event Row
+    
     @ViewBuilder
-    private func row(with title: String, timeDescription: String, time: String, occurrence: NewContentRowModel.Occurrence) -> some View {
+    private func eventRow(with title: String, timeDescription: String, time: String, occurrence: NewContentRowModel.Occurrence) -> some View {
         VStack(alignment: .leading) {
             HStack {
                 Text(title)

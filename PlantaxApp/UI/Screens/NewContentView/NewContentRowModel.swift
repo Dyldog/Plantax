@@ -7,11 +7,14 @@
 
 import Foundation
 
-struct NewContentRowModel: Hashable, Equatable {
+struct NewContentRowModel: Hashable, Equatable, Identifiable {
+    let id: Int
     let title: String
     let time: String
     let timeDescription: String
     let occurrence: Occurrence
+    let isChild: Bool
+    let hasChildren: Bool
     
     enum Occurrence {
         case past

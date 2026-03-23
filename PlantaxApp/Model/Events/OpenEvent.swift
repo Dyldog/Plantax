@@ -12,6 +12,7 @@ public struct OpenEvent: Event {
     public let line: Int
     public let time: EventTime
     public let type: TimeType
+    public let children: [EventChild]
     
     public var boundaries: (start: TimeInterval?, end: TimeInterval?) {
         switch type {
@@ -27,11 +28,12 @@ public struct OpenEvent: Event {
         }
     }
     
-    public init(title: String, line: Int, time: EventTime, type: TimeType) {
+    public init(title: String, line: Int, time: EventTime, type: TimeType, children: [EventChild] = []) {
         self.title = title
         self.line = line
         self.time = time
         self.type = type
+        self.children = children
     }
     
     public enum TimeType {

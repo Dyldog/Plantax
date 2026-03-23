@@ -35,13 +35,28 @@ public class Compiler: EventVisitor {
     public func fixEvents() throws -> [FixedEvent] {
         while rawEvents.isEmpty == false {
             let event = rawEvents.removeFirst()
-//            do {
-                let fixed = try event.accept(visitor: self)
-                advanceBaseDate(to: fixed.end)
-                fixedEvents.append(fixed)
-//            } catch {
-//                print(error)
-//            }
+            var fixed = try event.accept(visitor: self)
+            
+            // For non-travel events with children, expand children
+            // within the parent's fixed time window.
+            if !(event is TravelEvent), !event.children.isEmpty, fixed.children.isEmpty {
+                let expanded = expandEventChildren(
+                    parentTitle: fixed.title,
+                    parentStart: fixed.start,
+                    parentEnd: fixed.end,
+                    children: event.children
+                )
+                fixed = FixedEvent(
+                    title: fixed.title,
+                    timeDescription: fixed.timeDescription,
+                    start: fixed.start,
+                    end: fixed.end,
+                    children: expanded
+                )
+            }
+            
+            advanceBaseDate(to: fixed.end)
+            fixedEvents.append(fixed)
         }
         
         return fixedEvents
@@ -199,22 +214,18 @@ public class Compiler: EventVisitor {
             travelTitle: event.title
         )
 
-        // Append all but the last event; return the last so the
-        // main loop can add it and track the end time.
-        for intermediate in expanded.dropLast() {
-            advanceBaseDate(to: intermediate.end)
-            fixedEvents.append(intermediate)
-        }
+        let end = expanded.last?.end ?? start.addingTimeInterval(driveDuration)
 
-        return expanded.last ?? FixedEvent(
+        return FixedEvent(
             title: event.title,
-            timeDescription: "Travel",
+            timeDescription: "Travel (\(driveDuration.durationString))",
             start: start,
-            end: start.addingTimeInterval(driveDuration)
+            end: end,
+            children: expanded
         )
     }
 
-    // MARK: - Travel Schedule Expansion
+    // MARK: - Schedule Expansion (Travel)
 
     /// Simulates the journey, interleaving driving segments with child
     /// activities (schedule windows and recurring breaks).
@@ -224,22 +235,20 @@ public class Compiler: EventVisitor {
     private func expandTravelSchedule(
         driveDuration: TimeInterval,
         startDate: Date,
-        children: [TravelChild],
+        children: [EventChild],
         travelTitle: String
     ) -> [FixedEvent] {
         var events: [FixedEvent] = []
         var currentTime = startDate
         var remainingDriveTime = driveDuration
-        var accumulatedDriveTime: TimeInterval = 0
+        var accumulatedSegmentTime: TimeInterval = 0
 
-        // Safety limit to avoid infinite loops from bad input.
         var iterations = 0
         let maxIterations = 10_000
 
         while remainingDriveTime > 1, iterations < maxIterations {
             iterations += 1
 
-            // 1. Check if we're inside a schedule child's window (by priority).
             if let (child, windowEnd) = firstActiveScheduleChild(at: currentTime, children: children) {
                 events.append(FixedEvent(
                     title: child.title,
@@ -248,12 +257,11 @@ public class Compiler: EventVisitor {
                     end: windowEnd
                 ))
                 currentTime = windowEnd
-                accumulatedDriveTime = 0
+                accumulatedSegmentTime = 0
                 continue
             }
 
-            // 2. Check if a recurring break is due.
-            if let child = firstDueRecurringChild(accumulated: accumulatedDriveTime, children: children) {
+            if let child = firstDueRecurringChild(accumulated: accumulatedSegmentTime, children: children) {
                 let breakEnd = currentTime.addingTimeInterval(child.duration)
                 events.append(FixedEvent(
                     title: child.title,
@@ -262,14 +270,13 @@ public class Compiler: EventVisitor {
                     end: breakEnd
                 ))
                 currentTime = breakEnd
-                accumulatedDriveTime = 0
+                accumulatedSegmentTime = 0
                 continue
             }
 
-            // 3. Drive until the next interruption or until done.
-            let segment = nextDriveSegment(
+            let segment = nextSegmentDuration(
                 from: currentTime,
-                accumulated: accumulatedDriveTime,
+                accumulated: accumulatedSegmentTime,
                 remaining: remainingDriveTime,
                 children: children
             )
@@ -283,23 +290,94 @@ public class Compiler: EventVisitor {
             ))
 
             remainingDriveTime -= segment
-            accumulatedDriveTime += segment
+            accumulatedSegmentTime += segment
             currentTime = segmentEnd
         }
 
         return events
     }
 
+    // MARK: - Schedule Expansion (General)
+
+    /// Expands children within a parent event's fixed time window.
+    /// The parent's title fills gaps between child activities.
+    private func expandEventChildren(
+        parentTitle: String,
+        parentStart: Date,
+        parentEnd: Date,
+        children: [EventChild]
+    ) -> [FixedEvent] {
+        var events: [FixedEvent] = []
+        var currentTime = parentStart
+        var accumulatedSegmentTime: TimeInterval = 0
+
+        var iterations = 0
+        let maxIterations = 10_000
+
+        while currentTime < parentEnd, iterations < maxIterations {
+            iterations += 1
+            let remaining = parentEnd.timeIntervalSince(currentTime)
+            guard remaining > 1 else { break }
+
+            if let (child, windowEnd) = firstActiveScheduleChild(at: currentTime, children: children) {
+                let clampedEnd = min(windowEnd, parentEnd)
+                events.append(FixedEvent(
+                    title: child.title,
+                    timeDescription: "",
+                    start: currentTime,
+                    end: clampedEnd
+                ))
+                currentTime = clampedEnd
+                accumulatedSegmentTime = 0
+                continue
+            }
+
+            if let child = firstDueRecurringChild(accumulated: accumulatedSegmentTime, children: children) {
+                let breakEnd = min(currentTime.addingTimeInterval(child.duration), parentEnd)
+                events.append(FixedEvent(
+                    title: child.title,
+                    timeDescription: "For \(child.duration.durationString)",
+                    start: currentTime,
+                    end: breakEnd
+                ))
+                currentTime = breakEnd
+                accumulatedSegmentTime = 0
+                continue
+            }
+
+            let segment = nextSegmentDuration(
+                from: currentTime,
+                accumulated: accumulatedSegmentTime,
+                remaining: remaining,
+                children: children
+            )
+
+            let segmentEnd = currentTime.addingTimeInterval(segment)
+            events.append(FixedEvent(
+                title: parentTitle,
+                timeDescription: "",
+                start: currentTime,
+                end: segmentEnd
+            ))
+            accumulatedSegmentTime += segment
+            currentTime = segmentEnd
+        }
+
+        return events
+    }
+
+    // MARK: - Child Helpers
+
     /// Returns the first schedule child whose clock-time window includes `time`,
     /// together with the absolute `Date` when that window ends.
     private func firstActiveScheduleChild(
         at time: Date,
-        children: [TravelChild]
-    ) -> (TravelScheduleChild, Date)? {
+        children: [EventChild]
+    ) -> (ScheduleChild, Date)? {
         let timeOfDay = timeOfDayOffset(for: time)
 
         for child in children {
-            guard let schedule = child as? TravelScheduleChild else { continue }
+            guard let schedule = child as? ScheduleChild else { continue }
             let startOffset = schedule.start.offset
             let endOffset = schedule.end.offset
 
@@ -307,7 +385,6 @@ public class Compiler: EventVisitor {
             if startOffset < endOffset {
                 isActive = timeOfDay >= startOffset && timeOfDay < endOffset
             } else {
-                // Crosses midnight (e.g. 11 pm → 8 am).
                 isActive = timeOfDay >= startOffset || timeOfDay < endOffset
             }
 
@@ -322,10 +399,10 @@ public class Compiler: EventVisitor {
     /// Returns the first recurring child whose interval has been met.
     private func firstDueRecurringChild(
         accumulated: TimeInterval,
-        children: [TravelChild]
-    ) -> TravelRecurringChild? {
+        children: [EventChild]
+    ) -> RecurringChild? {
         for child in children {
-            guard let recurring = child as? TravelRecurringChild else { continue }
+            guard let recurring = child as? RecurringChild else { continue }
             if accumulated >= recurring.interval {
                 return recurring
             }
@@ -333,22 +410,22 @@ public class Compiler: EventVisitor {
         return nil
     }
 
-    /// Calculates the longest uninterrupted drive segment from `time`.
-    private func nextDriveSegment(
+    /// Calculates the longest uninterrupted segment from `time`.
+    private func nextSegmentDuration(
         from time: Date,
         accumulated: TimeInterval,
         remaining: TimeInterval,
-        children: [TravelChild]
+        children: [EventChild]
     ) -> TimeInterval {
         var minSegment = remaining
 
         for child in children {
-            if let schedule = child as? TravelScheduleChild {
+            if let schedule = child as? ScheduleChild {
                 let until = timeUntilNextOccurrence(of: schedule.start.offset, from: time)
                 if until > 0 {
                     minSegment = min(minSegment, until)
                 }
-            } else if let recurring = child as? TravelRecurringChild {
+            } else if let recurring = child as? RecurringChild {
                 let until = recurring.interval - accumulated
                 if until > 0 {
                     minSegment = min(minSegment, until)
@@ -366,8 +443,6 @@ public class Compiler: EventVisitor {
         return date.timeIntervalSince(startOfDay)
     }
 
-    /// Returns the next absolute `Date` at which the given time-of-day
-    /// offset occurs (today if still in the future, otherwise tomorrow).
     private func dateForNextOccurrence(of offset: TimeInterval, after date: Date) -> Date {
         let startOfDay = calendar.startOfDay(for: date)
         let candidate = startOfDay.addingTimeInterval(offset)
@@ -406,12 +481,8 @@ extension TimeInterval {
     static let durationStringFormatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour, .minute, .second]
-        formatter.unitsStyle = .full // e.g., "2 hours, 6 minutes"
-        formatter.zeroFormattingBehavior = .pad // pads zero values if needed in positional style
-
         formatter.unitsStyle = .full
         formatter.zeroFormattingBehavior = .dropAll
-
         return formatter
     }()
     

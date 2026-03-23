@@ -13,6 +13,9 @@ public protocol Event {
     /// The source line where this event was defined.
     var line: Int { get }
     
+    /// Child activities that occur within this event (schedule windows, recurring breaks, etc.).
+    var children: [EventChild] { get }
+    
     func accept<Visitor: EventVisitor>(visitor: Visitor) throws -> Visitor.Output
     
     var boundaries: (start: TimeInterval?, end: TimeInterval?) { get }

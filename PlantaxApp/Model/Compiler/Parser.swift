@@ -37,15 +37,7 @@ public class Parser {
         var events: [Event] = []
         
         while !isAtEnd {
-//            do {
-                events.append(try event())
-//            } catch let error as ParseError {
-                // TODO: Panic mode
-//                print(error.localizedDescription)
-//                synchronise()
-//            } catch {
-//                print(error)
-//            }
+            events.append(try event())
         }
         
         return events
@@ -128,14 +120,7 @@ public class Parser {
             let title = "\(mode.displayName) from \(origin) to \(destination)"
 
             if check(type: .newline) { _ = advance() }
-
-            // Parse indented children (schedule windows & recurring breaks)
-            var children: [TravelChild] = []
-            while check(type: .indent) {
-                _ = advance() // consume indent
-                children.append(try travelChild())
-                if check(type: .newline) { _ = advance() }
-            }
+            let children = try parseChildren()
 
             return TravelEvent(
                 title: title,
@@ -151,39 +136,80 @@ public class Parser {
 
         let title = try longString()
         
-        let event: Event
+        if check(type: .newline) { _ = advance() }
+        let children = try parseChildren()
         
         switch (start, end, duration) {
         case (nil, nil, nil):
-            event = FreeEvent(title: title, line: eventLine)
+            return FreeEvent(title: title, line: eventLine, children: children)
         case let (.some(start), nil, nil):
-            event = OpenEvent(title: title, line: eventLine, time: start, type: .start)
+            return OpenEvent(title: title, line: eventLine, time: start, type: .start, children: children)
         case let (nil, .some(end), nil):
-            event = OpenEvent(title: title, line: eventLine, time: end, type: .end)
+            return OpenEvent(title: title, line: eventLine, time: end, type: .end, children: children)
         case let (.some(start), .some(end), nil):
-            event = ClosedEvent(start: start, end: end, title: title, line: eventLine)
+            return ClosedEvent(start: start, end: end, title: title, line: eventLine, children: children)
         case let (nil, .some(end), .some(duration)):
             let startTime = EventTime(
                 offset: end.offset - duration,
                 date: end.date
             )
-            event = ClosedEvent(start: startTime, end: end, title: title, line: eventLine)
+            return ClosedEvent(start: startTime, end: end, title: title, line: eventLine, children: children)
         case let (.some(start), nil, .some(duration)):
             let endTime = EventTime(
                 offset: start.offset + duration,
                 date: start.date
             )
-            event = ClosedEvent(start: start, end: endTime, title: title, line: eventLine)
+            return ClosedEvent(start: start, end: endTime, title: title, line: eventLine, children: children)
         case let (nil, nil, .some(duration)):
-            event = DurationEvent(title: title, line: eventLine, duration: duration)
+            return DurationEvent(title: title, line: eventLine, duration: duration, children: children)
         case (.some, .some, .some):
             throw error(token: previous(), message: "Cannot set start, duration, and end")
         }
-        
-        if check(type: .newline) { _ = advance() }
-        
-        return event
     }
+    
+    // MARK: - Children
+    
+    /// Parses indented child events (schedule windows & recurring breaks)
+    /// that follow a parent event.
+    private func parseChildren() throws -> [EventChild] {
+        var children: [EventChild] = []
+        while check(type: .indent) {
+            _ = advance() // consume indent
+            children.append(try eventChild())
+            if check(type: .newline) { _ = advance() }
+        }
+        return children
+    }
+    
+    private func eventChild() throws -> EventChild {
+        if match(types: .at) {
+            return try scheduleChild()
+        } else if match(types: .percent) {
+            return try recurringChild()
+        } else {
+            throw error(token: peek(), message: "Expected '@' or '%' for child event")
+        }
+    }
+
+    /// Parses `@11pm->8am Title` — a clock-time schedule window.
+    private func scheduleChild() throws -> ScheduleChild {
+        let start = try time()
+        _ = try consume(type: .arrow, message: "Expected '->' in schedule child")
+        let end = try time()
+        let title = try longString()
+        return ScheduleChild(start: start, end: end, title: title)
+    }
+
+    /// Parses `%1h/10m Title` — a recurring break.
+    private func recurringChild() throws -> RecurringChild {
+        let interval = try duration()
+        _ = try consume(type: .slash, message: "Expected '/' between interval and duration")
+        let breakDuration = try duration()
+        let title = try longString()
+        return RecurringChild(interval: interval, duration: breakDuration, title: title)
+    }
+    
+    // MARK: - Primitives
     
     private func time() throws -> EventTime {
         let date = try optionalDate()
@@ -285,36 +311,6 @@ public class Parser {
         throw error(token: peek(), message: "Expected 'am' or 'pm'")
     }
     
-    // MARK: - Travel Children
-
-    private func travelChild() throws -> TravelChild {
-        if match(types: .at) {
-            return try scheduleChild()
-        } else if match(types: .percent) {
-            return try recurringChild()
-        } else {
-            throw error(token: peek(), message: "Expected '@' or '%' for travel child event")
-        }
-    }
-
-    /// Parses `@11pm->8am Title` — a clock-time schedule window.
-    private func scheduleChild() throws -> TravelScheduleChild {
-        let start = try time()
-        _ = try consume(type: .arrow, message: "Expected '->' in schedule child")
-        let end = try time()
-        let title = try longString()
-        return TravelScheduleChild(start: start, end: end, title: title)
-    }
-
-    /// Parses `%1h/10m Title` — a recurring break.
-    private func recurringChild() throws -> TravelRecurringChild {
-        let interval = try duration()
-        _ = try consume(type: .slash, message: "Expected '/' between interval and duration")
-        let breakDuration = try duration()
-        let title = try longString()
-        return TravelRecurringChild(interval: interval, duration: breakDuration, title: title)
-    }
-
     private func travelMode(from token: Token) -> TravelMode {
         switch token.type {
         case .drive: .drive

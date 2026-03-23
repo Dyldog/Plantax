@@ -7,7 +7,8 @@
 
 import Foundation
 
-struct FreeTimeRowModel: Hashable, Equatable {
+struct FreeTimeRowModel: Hashable, Equatable, Identifiable {
+    let id: Int
     let title: String
     let timeDescription: String
     let time: String

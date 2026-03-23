@@ -109,22 +109,22 @@ DRIVE Sydney -> Melbourne
 @9am WALK Hotel -> Conference Centre
 ```
 
-### Travel Children
+## Child Events
 
-Indented lines beneath a travel event describe activities that occur during the journey. There are two kinds:
+Any event can have **indented child events** beneath it. Children describe activities that occur within (or during) the parent event. There are two kinds:
 
-#### Schedule windows (`@start->end Title`)
+### Schedule windows (`@start->end Title`)
 
-A clock-time window that activates whenever the wall-clock falls within its range. Useful for sleep or meal stops.
+A clock-time window that activates whenever the wall-clock falls within its range.
 
 ```
     @11pm->8am Sleep and camp
     @12pm->1pm Lunch stop
 ```
 
-#### Recurring breaks (`%interval/duration Title`)
+### Recurring breaks (`%interval/duration Title`)
 
-A break that triggers after every *interval* of accumulated driving time, lasting for *duration*.
+A break that triggers after every *interval* of accumulated parent-activity time, lasting for *duration*.
 
 ```
     %1h/10m Rest stop
@@ -135,7 +135,9 @@ A break that triggers after every *interval* of accumulated driving time, lastin
 
 Children listed higher take precedence. If a schedule window and a recurring break would overlap, the higher-listed child is chosen.
 
-### Full travel example
+### Travel children
+
+For travel events, children **extend** the total journey time. Driving segments fill the gaps between child activities, and the journey ends once the full driving duration has been accumulated.
 
 ```
 DRIVE Sydney -> Melbourne
@@ -148,7 +150,17 @@ This calculates the driving duration from Sydney to Melbourne and produces a sch
 1. **Sleep and camp** — whenever the clock is between 11 pm and 8 am.
 2. **Break** — 10 minutes of rest after every hour of driving.
 
-Because "Sleep and camp" is listed first, it takes priority over breaks during its window.
+### Regular children
+
+For non-travel events, children **subdivide** the parent's fixed time window. The parent title fills gaps between child activities.
+
+```
+@9am->5pm Work
+    @12pm->1pm Lunch
+    %2h/15m Break
+```
+
+This produces a schedule within the 9 am–5 pm window where lunch occupies 12–1 pm, 15-minute breaks occur every 2 hours of work, and "Work" fills the remaining time.
 
 ## Full Example
 

@@ -32,7 +32,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "56"
             endingLineNumber = "56"
-            landmarkName = "resolve(_:)"
+            landmarkName = "fixEvents()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -48,7 +48,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "82"
             endingLineNumber = "82"
-            landmarkName = "visitClosedEvent(_:)"
+            landmarkName = "advanceBaseDate(to:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
