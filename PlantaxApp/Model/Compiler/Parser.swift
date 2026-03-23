@@ -98,8 +98,8 @@ public class Parser {
     // MARK: - Types
     
     private func event() throws -> Event {
-        var start: TimeInterval?
-        var end: TimeInterval?
+        var start: EventTime?
+        var end: EventTime?
         var duration: TimeInterval?
         
         if match(types: .at) {
@@ -128,9 +128,17 @@ public class Parser {
         case let (.some(start), .some(end), nil):
             event = ClosedEvent(start: start, end: end, title: title)
         case let (nil, .some(end), .some(duration)):
-            event = ClosedEvent(start: end - duration, end: end, title: title)
+            let startTime = EventTime(
+                offset: end.offset - duration,
+                date: end.date
+            )
+            event = ClosedEvent(start: startTime, end: end, title: title)
         case let (.some(start), nil, .some(duration)):
-            event = ClosedEvent(start: start, end: start + duration, title: title)
+            let endTime = EventTime(
+                offset: start.offset + duration,
+                date: start.date
+            )
+            event = ClosedEvent(start: start, end: endTime, title: title)
         case let (nil, nil, .some(duration)):
             event = DurationEvent(title: title, duration: duration)
         case (.some, .some, .some):
@@ -142,7 +150,9 @@ public class Parser {
         return event
     }
     
-    private func time() throws -> TimeInterval {
+    private func time() throws -> EventTime {
+        let date = try optionalDate()
+        
         let hours = try number()
         var minutes: Int? = 0
         
@@ -150,10 +160,30 @@ public class Parser {
             minutes = try number()
         }
         
-        
         let meridiem = try meridiem()
         let offset = TimeInterval.interval(forHour: hours, minutes: minutes, and: meridiem)
-        return offset
+        return EventTime(offset: offset, date: date)
+    }
+    
+    /// Parses an optional date in `day/month` or `day/month/year` format.
+    private func optionalDate() throws -> EventDate? {
+        guard check(type: .number) else { return nil }
+        
+        // Peek ahead to see if a slash follows the number — if not, it's a time, not a date.
+        guard current + 1 < tokens.count, tokens[current + 1].type == .slash else {
+            return nil
+        }
+        
+        let day = try number()
+        _ = try consume(type: .slash, message: "Expected '/' in date")
+        let month = try number()
+        
+        var year: Int?
+        if match(types: .slash) {
+            year = try number()
+        }
+        
+        return EventDate(day: day, month: month, year: year)
     }
     
     private func duration() throws -> TimeInterval {

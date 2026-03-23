@@ -20,17 +20,25 @@ public class Compiler: EventVisitor {
     var rawEvents: [Event]
     var fixedEvents: [FixedEvent] = []
     
-    let dayStart: Date = .now.startOfDay
+    private let calendar: Calendar = .current
+    
+    /// The running base date used for events that don't specify their own date.
+    /// Advances automatically when an explicit date is set or when an event's
+    /// end time crosses midnight.
+    private var currentBaseDate: Date
     
     public init(rawEvents: [Event]) {
         self.rawEvents = rawEvents
+        self.currentBaseDate = Date.now.startOfDay
     }
     
     public func fixEvents() throws -> [FixedEvent] {
         while rawEvents.isEmpty == false {
             let event = rawEvents.removeFirst()
 //            do {
-                try fixedEvents.append(event.accept(visitor: self))
+                let fixed = try event.accept(visitor: self)
+                advanceBaseDate(to: fixed.end)
+                fixedEvents.append(fixed)
 //            } catch {
 //                print(error)
 //            }
@@ -39,9 +47,32 @@ public class Compiler: EventVisitor {
         return fixedEvents
     }
     
+    /// Resolves an `EventTime` to an absolute `Date`.
+    /// When the event carries an explicit date, the base date is updated to
+    /// that date so subsequent events inherit it.
+    private func resolve(_ eventTime: EventTime) -> Date {
+        if let eventDate = eventTime.date {
+            let components = eventDate.resolve(using: calendar)
+            if let explicit = calendar.date(from: components) {
+                currentBaseDate = explicit
+            }
+        }
+        return currentBaseDate.addingTimeInterval(eventTime.offset)
+    }
+    
+    /// If `date` falls on a later calendar day than `currentBaseDate`, advance
+    /// the base to the start of that day so following events land on the
+    /// correct date.
+    private func advanceBaseDate(to date: Date) {
+        let endOfBaseDay = calendar.startOfDay(for: currentBaseDate).addingTimeInterval(60 * 60 * 24)
+        if date >= endOfBaseDay {
+            currentBaseDate = calendar.startOfDay(for: date)
+        }
+    }
+    
     public func visitClosedEvent(_ event: ClosedEvent) throws -> FixedEvent {
-        let start = dayStart.addingTimeInterval(event.start)
-        let end = dayStart.addingTimeInterval(event.end)
+        let start = resolve(event.start)
+        let end = resolve(event.end)
         
         return FixedEvent(
             title: event.title,
@@ -70,19 +101,16 @@ public class Compiler: EventVisitor {
             guard let next = rawEvents.first, let nextStart = next.boundaries.start else {
                 throw error(event: event, message: "Event without end time must be followed by event with start time")
             }
-            let start = dayStart.addingTimeInterval(event.time)
+            let start = resolve(event.time)
             return FixedEvent(
                 title: event.title,
                 timeDescription: "From \(start.description)",
                 start: start,
-                end: dayStart.addingTimeInterval(nextStart)
+                end: currentBaseDate.addingTimeInterval(nextStart)
             )
         case .end:
-//            guard let previous = fixedEvents.last else {
-//                throw error(event: event, message: "Event without start time must follow event with end time")
-//            }
             let previousEnd = fixedEvents.last?.end ?? .now
-            let end = dayStart.addingTimeInterval(event.time)
+            let end = resolve(event.time)
             return FixedEvent(
                 title: event.title,
                 timeDescription: "Until \(end.description)",
@@ -103,14 +131,14 @@ public class Compiler: EventVisitor {
                 title: event.title,
                 timeDescription: "",
                 start: previous.end,
-                end: dayStart.addingTimeInterval(60 * 60 * 24))
+                end: currentBaseDate.addingTimeInterval(60 * 60 * 24))
         case let .some(nextEvent):
             if let nextStart = nextEvent.boundaries.start {
                 return FixedEvent(
                     title: event.title,
                     timeDescription: "",
                     start: previous.start,
-                    end: dayStart.addingTimeInterval(nextStart)
+                    end: currentBaseDate.addingTimeInterval(nextStart)
                 )
             } else {
                 throw CompilerError(event: event, message: "Event without end time cannot precede event without start time")

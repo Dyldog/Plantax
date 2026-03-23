@@ -21,19 +21,18 @@ class NewContentViewModel: ObservableObject, EventCompiler {
     }
     
     private func makeRows(from events: [FixedEvent]) -> [NewPlanRowModel] {
-//        events.map { event in
-//            .init(
-//                title: event.title,
-//                time: "\(event.start.description) -> \(event.end.description)",
-//                timeDescription: event.timeDescription,
-//                occurrence: occurrence(for: event.start, and: event.end)
-//            )
-//        }
-        
         var rows: [NewPlanRowModel] = []
         var lastEvent: FixedEvent?
+        var currentDateLabel: String?
         
         for event in events {
+            let dateLabel = Self.dateHeaderLabel(for: event.start)
+            
+            if dateLabel != currentDateLabel {
+                currentDateLabel = dateLabel
+                rows.append(.dateHeader(dateLabel))
+            }
+            
             if let lastEvent, lastEvent.end < event.start {
                 rows.append(.freeTime(.init(
                     title: "Free",
@@ -52,6 +51,27 @@ class NewContentViewModel: ObservableObject, EventCompiler {
         }
         
         return rows
+    }
+    
+    private static let headerFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter
+    }()
+    
+    private static func dateHeaderLabel(for date: Date) -> String {
+        let calendar = Calendar.current
+        
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInTomorrow(date) {
+            return "Tomorrow"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            return headerFormatter.string(from: date)
+        }
     }
     
     private func occurrence(for start: Date, and end: Date) -> NewContentRowModel.Occurrence {

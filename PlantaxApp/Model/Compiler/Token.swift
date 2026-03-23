@@ -9,6 +9,7 @@ public enum TokenType {
     case at
     case number
     case colon
+    case slash
     case am
     case pm
     case minutes

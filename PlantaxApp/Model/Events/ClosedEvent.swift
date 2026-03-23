@@ -8,13 +8,13 @@
 import Foundation
 
 public struct ClosedEvent: Event {
-    public let start: TimeInterval
-    public let end: TimeInterval
+    public let start: EventTime
+    public let end: EventTime
     public let title: String
     
-    public var boundaries: (start: TimeInterval?, end: TimeInterval?) { (start, end) }
+    public var boundaries: (start: TimeInterval?, end: TimeInterval?) { (start.offset, end.offset) }
     
-    public init(start: TimeInterval, end: TimeInterval, title: String) {
+    public init(start: EventTime, end: EventTime, title: String) {
         self.start = start
         self.end = end
         self.title = title

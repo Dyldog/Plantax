@@ -8,6 +8,7 @@
 import Foundation
 
 enum NewPlanRowModel: Hashable, Equatable {
+    case dateHeader(String)
     case event(NewContentRowModel)
     case freeTime(FreeTimeRowModel)
 }

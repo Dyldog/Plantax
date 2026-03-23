@@ -9,16 +9,17 @@ import Foundation
 
 public struct OpenEvent: Event {
     public let title: String
-    public let time: TimeInterval
+    public let time: EventTime
     public let type: TimeType
     
     public var boundaries: (start: TimeInterval?, end: TimeInterval?) {
         switch type {
-        case .start: (time, nil)
-        case .end: (nil, time)
+        case .start: (time.offset, nil)
+        case .end: (nil, time.offset)
         }
     }
-    public init(title: String, time: TimeInterval, type: TimeType) {
+    
+    public init(title: String, time: EventTime, type: TimeType) {
         self.title = title
         self.time = time
         self.type = type

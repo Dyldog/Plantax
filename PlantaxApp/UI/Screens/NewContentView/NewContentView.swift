@@ -30,6 +30,8 @@ struct NewContentView: View {
     @ViewBuilder
     private func row(with model: NewPlanRowModel) -> some View {
         switch model {
+        case let .dateHeader(label):
+            dateHeader(label)
         case let .event(event):
             row(
                 with: event.title,
@@ -45,6 +47,14 @@ struct NewContentView: View {
             .background(.gray.opacity(0.4))
             .foregroundStyle(.white)
         }
+    }
+    
+    private func dateHeader(_ label: String) -> some View {
+        Text(label)
+            .font(.headline)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color(.systemGroupedBackground))
     }
     
     @ViewBuilder

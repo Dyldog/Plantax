@@ -54,6 +54,7 @@ public class Scanner {
         case "@": addToken(type: .at)
         case "#": addToken(type: .hash)
         case ":": addToken(type: .colon)
+        case "/": addToken(type: .slash)
         case "-": try arrow()
         case " ": break
         case "\n": addToken(type: .newline); line += 1
