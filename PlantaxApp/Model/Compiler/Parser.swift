@@ -98,6 +98,8 @@ public class Parser {
     // MARK: - Types
     
     private func event() throws -> Event {
+        let eventLine = peek().line
+        
         var start: EventTime?
         var end: EventTime?
         var duration: TimeInterval?
@@ -114,33 +116,56 @@ public class Parser {
             duration = try self.duration()
         }
 
+        // Travel events: DRIVE/RIDE/WALK origin -> destination
+        if match(types: .drive, .ride, .walk) {
+            guard end == nil, duration == nil else {
+                throw error(token: previous(), message: "Travel cannot be combined with end time or duration")
+            }
+            let mode = travelMode(from: previous())
+            let origin = try longString()
+            _ = try consume(type: .arrow, message: "Expected '->' between origin and destination")
+            let destination = try longString()
+            let title = "\(mode.displayName) from \(origin) to \(destination)"
+
+            if check(type: .newline) { _ = advance() }
+
+            return TravelEvent(
+                title: title,
+                line: eventLine,
+                mode: mode,
+                origin: origin,
+                destination: destination,
+                start: start
+            )
+        }
+
         let title = try longString()
         
         let event: Event
         
         switch (start, end, duration) {
         case (nil, nil, nil):
-            event = FreeEvent(title: title)
+            event = FreeEvent(title: title, line: eventLine)
         case let (.some(start), nil, nil):
-            event = OpenEvent(title: title, time: start, type: .start)
+            event = OpenEvent(title: title, line: eventLine, time: start, type: .start)
         case let (nil, .some(end), nil):
-            event = OpenEvent(title: title, time: end, type: .end)
+            event = OpenEvent(title: title, line: eventLine, time: end, type: .end)
         case let (.some(start), .some(end), nil):
-            event = ClosedEvent(start: start, end: end, title: title)
+            event = ClosedEvent(start: start, end: end, title: title, line: eventLine)
         case let (nil, .some(end), .some(duration)):
             let startTime = EventTime(
                 offset: end.offset - duration,
                 date: end.date
             )
-            event = ClosedEvent(start: startTime, end: end, title: title)
+            event = ClosedEvent(start: startTime, end: end, title: title, line: eventLine)
         case let (.some(start), nil, .some(duration)):
             let endTime = EventTime(
                 offset: start.offset + duration,
                 date: start.date
             )
-            event = ClosedEvent(start: start, end: endTime, title: title)
+            event = ClosedEvent(start: start, end: endTime, title: title, line: eventLine)
         case let (nil, nil, .some(duration)):
-            event = DurationEvent(title: title, duration: duration)
+            event = DurationEvent(title: title, line: eventLine, duration: duration)
         case (.some, .some, .some):
             throw error(token: previous(), message: "Cannot set start, duration, and end")
         }
@@ -250,6 +275,15 @@ public class Parser {
         throw error(token: peek(), message: "Expected 'am' or 'pm'")
     }
     
+    private func travelMode(from token: Token) -> TravelMode {
+        switch token.type {
+        case .drive: .drive
+        case .ride: .ride
+        case .walk: .walk
+        default: .drive
+        }
+    }
+
     // MARK: - Error Handling
     
     private func error(token: Token, message: String) -> ParseError {

@@ -19,6 +19,9 @@ public enum TokenType {
     case hash
     case newline
     case endOfFile
+    case drive
+    case ride
+    case walk
 }
 
 public struct Token {

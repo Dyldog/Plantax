@@ -21,6 +21,8 @@ struct LineError: Identifiable, Equatable {
             return LineError(line: e.line, message: e.message)
         case let e as ParseError:
             return LineError(line: e.token.line, message: e.message)
+        case let e as CompilerError:
+            return LineError(line: e.event.line, message: e.message)
         default:
             return LineError(line: 0, message: error.localizedDescription)
         }

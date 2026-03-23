@@ -160,6 +160,28 @@ public class Compiler: EventVisitor {
         }
     }
     
+    public func visitTravelEvent(_ event: TravelEvent) throws -> FixedEvent {
+        // During validation the real duration is unknown.
+        // Use a 30-minute placeholder so surrounding events can be checked.
+        let placeholderDuration: TimeInterval = 30 * 60
+
+        let start: Date
+        if let eventStart = event.start {
+            start = resolve(eventStart)
+        } else if let previous = fixedEvents.last {
+            start = previous.end
+        } else {
+            throw error(event: event, message: "Travel event without start time must follow an event with an end time")
+        }
+
+        return FixedEvent(
+            title: event.title,
+            timeDescription: "Travel (~30 min placeholder)",
+            start: start,
+            end: start.addingTimeInterval(placeholderDuration)
+        )
+    }
+
     // MARK: - Error Handling
     
     private func error(event: Event, message: String) -> CompilerError {

@@ -10,6 +10,9 @@ import Foundation
 public protocol Event {
     var title: String { get }
     
+    /// The source line where this event was defined.
+    var line: Int { get }
+    
     func accept<Visitor: EventVisitor>(visitor: Visitor) throws -> Visitor.Output
     
     var boundaries: (start: TimeInterval?, end: TimeInterval?) { get }
@@ -29,4 +32,5 @@ public protocol EventVisitor {
     func visitDurationEvent(_ event: DurationEvent) throws -> Output
     func visitOpenEvent(_ event: OpenEvent) throws -> Output
     func visitFreeEvent(_ event: FreeEvent) throws -> Output
+    func visitTravelEvent(_ event: TravelEvent) throws -> Output
 }

@@ -43,7 +43,9 @@ struct SyntaxEditorView: View {
             let scanner = Scanner(source: source)
             let tokens = try scanner.scanTokens()
             let parser = Parser(tokens: tokens)
-            _ = try parser.parseEvents()
+            let events = try parser.parseEvents()
+            let compiler = Compiler(rawEvents: events)
+            _ = try compiler.fixEvents()
             errors = []
         } catch {
             errors = [LineError.from(error)]

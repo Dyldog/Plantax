@@ -12,14 +12,17 @@ protocol EventCompiler {
 }
 
 extension EventCompiler {
-    func compileEvents(_ input: String) throws -> [FixedEvent] {
+    func compileEvents(_ input: String) async throws -> [FixedEvent] {
         let scanner = Scanner(source: input)
         let tokens = try scanner.scanTokens()
 
         let parser = Parser(tokens: tokens)
         let events = try parser.parseEvents()
 
-        let compiler = Compiler(rawEvents: events)
+        // Resolve travel events to concrete durations before compiling.
+        let resolvedEvents = try await TravelDurationResolver.resolveAll(events)
+
+        let compiler = Compiler(rawEvents: resolvedEvents)
         let flattenedEvents = try compiler.fixEvents()
         
         return flattenedEvents

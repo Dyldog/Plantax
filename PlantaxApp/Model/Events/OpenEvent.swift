@@ -9,6 +9,7 @@ import Foundation
 
 public struct OpenEvent: Event {
     public let title: String
+    public let line: Int
     public let time: EventTime
     public let type: TimeType
     
@@ -26,8 +27,9 @@ public struct OpenEvent: Event {
         }
     }
     
-    public init(title: String, time: EventTime, type: TimeType) {
+    public init(title: String, line: Int, time: EventTime, type: TimeType) {
         self.title = title
+        self.line = line
         self.time = time
         self.type = type
     }

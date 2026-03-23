@@ -9,6 +9,7 @@ import Foundation
 
 public struct FreeEvent: Event {
     public let title: String
+    public let line: Int
     public var boundaries: (start: TimeInterval?, end: TimeInterval?) = (nil, nil)
     public var startTime: EventTime? { nil }
     

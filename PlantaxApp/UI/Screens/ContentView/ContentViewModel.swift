@@ -13,20 +13,25 @@ class ContentViewModel: ObservableObject, EventCompiler {
     
     init() {
         self.rows = []
-        self.rows = makeRows(from: """
-            @12pm->1pm Lunch 
-            #30m Exercise
-            ->5pm Working from office
-            @5pm->8pm Thing
-            ->12am Other Thing
-            """)
+        Task {
+            let rows = await makeRows(from: """
+                @12pm->1pm Lunch 
+                #30m Exercise
+                ->5pm Working from office
+                @5pm->8pm Thing
+                ->12am Other Thing
+                """)
+            await MainActor.run {
+                self.rows = rows
+            }
+        }
     }
     
     var colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple]
     
-    private func makeRows(from input: String) -> [PlanRowModel] {
+    private func makeRows(from input: String) async -> [PlanRowModel] {
         do {
-            return try compileEvents(input).map { event in
+            return try await compileEvents(input).map { event in
                 let model = PlanRowModel(
                     title: event.title,
                     timeDescription: event.timeDescription,

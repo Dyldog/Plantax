@@ -27,6 +27,8 @@ enum SyntaxHighlighter {
             return .secondary
         case .am, .pm, .minutes, .hours:
             return .teal
+        case .drive, .ride, .walk:
+            return .orange
         case .word:
             return .primary
         case .newline, .endOfFile:

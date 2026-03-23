@@ -16,12 +16,23 @@ struct CompiledPlan: Identifiable, Hashable {
 class PlannerViewModel: ObservableObject, EventCompiler {
     @Published var errorMessage: String?
     @Published var compiledPlan: CompiledPlan?
+    @Published var isLoading = false
     
     func didTapShow(with input: String) {
-        do {
-            compiledPlan = CompiledPlan(events: try compileEvents(input))
-        } catch {
-            errorMessage = error.localizedDescription
+        isLoading = true
+        Task {
+            do {
+                let events = try await compileEvents(input)
+                await MainActor.run {
+                    compiledPlan = CompiledPlan(events: events)
+                    isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = error.localizedDescription
+                    isLoading = false
+                }
+            }
         }
     }
 }
@@ -39,6 +50,13 @@ struct PlannerView: View {
     var body: some View {
         NavigationStack {
             editor
+                .overlay {
+                    if viewModel.isLoading {
+                        ProgressView("Resolving travel…")
+                            .padding()
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+                    }
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Picker("Editor", selection: $editorType) {

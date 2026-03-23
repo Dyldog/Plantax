@@ -29,7 +29,10 @@ public class Scanner {
         "am": .am,
         "pm": .pm,
         "m": .minutes,
-        "h": .hours
+        "h": .hours,
+        "drive": .drive,
+        "ride": .ride,
+        "walk": .walk,
     ]
     
     public init(source: String) {
@@ -100,14 +103,14 @@ public class Scanner {
     // MARK: - Lexeme Types
     
     private func number() {
-        while peek().isNumber { advance() }
+        while peek().isNumber { _ = advance() }
         addToken(type: .number, literal: Int(currentLexeme))
     }
     
     private func identifier() {
-        while peek().isLetter { advance() }
+        while peek().isLetter { _ = advance() }
         
-        let type = keywords[currentLexeme] ?? .word
+        let type = keywords[currentLexeme.lowercased()] ?? .word
         
         addToken(type: type, literal: currentLexeme)
     }
@@ -115,7 +118,7 @@ public class Scanner {
     private func arrow() throws {
         guard peek() == ">" else { try error("Expected '>' to complete '-'"); return }
         
-        advance() // Consume '>'
+        _ = advance() // Consume '>'
         
         addToken(type: .arrow)
     }
