@@ -13,6 +13,9 @@ public protocol Event {
     func accept<Visitor: EventVisitor>(visitor: Visitor) throws -> Visitor.Output
     
     var boundaries: (start: TimeInterval?, end: TimeInterval?) { get }
+    
+    /// The full start time (including any date) for this event, if it has one.
+    var startTime: EventTime? { get }
 }
 
 extension Event {

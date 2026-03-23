@@ -12,6 +12,7 @@ public struct DurationEvent: Event {
     public let duration: TimeInterval
     
     public var boundaries: (start: TimeInterval?, end: TimeInterval?) { (nil, nil) }
+    public var startTime: EventTime? { nil }
     
     public init(title: String, duration: TimeInterval) {
         self.title = title

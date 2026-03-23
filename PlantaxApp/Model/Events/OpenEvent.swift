@@ -19,6 +19,13 @@ public struct OpenEvent: Event {
         }
     }
     
+    public var startTime: EventTime? {
+        switch type {
+        case .start: time
+        case .end: nil
+        }
+    }
+    
     public init(title: String, time: EventTime, type: TimeType) {
         self.title = title
         self.time = time

@@ -13,6 +13,7 @@ public struct ClosedEvent: Event {
     public let title: String
     
     public var boundaries: (start: TimeInterval?, end: TimeInterval?) { (start.offset, end.offset) }
+    public var startTime: EventTime? { start }
     
     public init(start: EventTime, end: EventTime, title: String) {
         self.start = start

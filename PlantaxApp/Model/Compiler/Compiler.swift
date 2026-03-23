@@ -95,18 +95,32 @@ public class Compiler: EventVisitor {
         )
     }
     
+    /// Resolves an `EventTime` to an absolute `Date` without mutating
+    /// `currentBaseDate`. Used to peek at future events.
+    private func peekResolve(_ eventTime: EventTime) -> Date {
+        var baseDate = currentBaseDate
+        if let eventDate = eventTime.date {
+            let components = eventDate.resolve(using: calendar)
+            if let explicit = calendar.date(from: components) {
+                baseDate = explicit
+            }
+        }
+        return baseDate.addingTimeInterval(eventTime.offset)
+    }
+    
     public func visitOpenEvent(_ event: OpenEvent) throws -> FixedEvent {
         switch event.type {
         case .start:
-            guard let next = rawEvents.first, let nextStart = next.boundaries.start else {
+            guard let next = rawEvents.first, let nextStartTime = next.startTime else {
                 throw error(event: event, message: "Event without end time must be followed by event with start time")
             }
             let start = resolve(event.time)
+            let end = peekResolve(nextStartTime)
             return FixedEvent(
                 title: event.title,
                 timeDescription: "From \(start.description)",
                 start: start,
-                end: currentBaseDate.addingTimeInterval(nextStart)
+                end: end
             )
         case .end:
             let previousEnd = fixedEvents.last?.end ?? .now
@@ -133,12 +147,12 @@ public class Compiler: EventVisitor {
                 start: previous.end,
                 end: currentBaseDate.addingTimeInterval(60 * 60 * 24))
         case let .some(nextEvent):
-            if let nextStart = nextEvent.boundaries.start {
+            if let nextStartTime = nextEvent.startTime {
                 return FixedEvent(
                     title: event.title,
                     timeDescription: "",
                     start: previous.start,
-                    end: currentBaseDate.addingTimeInterval(nextStart)
+                    end: peekResolve(nextStartTime)
                 )
             } else {
                 throw CompilerError(event: event, message: "Event without end time cannot precede event without start time")
