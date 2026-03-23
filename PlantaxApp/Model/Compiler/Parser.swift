@@ -129,13 +129,23 @@ public class Parser {
 
             if check(type: .newline) { _ = advance() }
 
+            // Parse indented children (schedule windows & recurring breaks)
+            var children: [TravelChild] = []
+            while check(type: .indent) {
+                _ = advance() // consume indent
+                children.append(try travelChild())
+                if check(type: .newline) { _ = advance() }
+            }
+
             return TravelEvent(
                 title: title,
                 line: eventLine,
                 mode: mode,
                 origin: origin,
                 destination: destination,
-                start: start
+                start: start,
+                children: children,
+                resolvedDuration: nil
             )
         }
 
@@ -275,6 +285,36 @@ public class Parser {
         throw error(token: peek(), message: "Expected 'am' or 'pm'")
     }
     
+    // MARK: - Travel Children
+
+    private func travelChild() throws -> TravelChild {
+        if match(types: .at) {
+            return try scheduleChild()
+        } else if match(types: .percent) {
+            return try recurringChild()
+        } else {
+            throw error(token: peek(), message: "Expected '@' or '%' for travel child event")
+        }
+    }
+
+    /// Parses `@11pm->8am Title` — a clock-time schedule window.
+    private func scheduleChild() throws -> TravelScheduleChild {
+        let start = try time()
+        _ = try consume(type: .arrow, message: "Expected '->' in schedule child")
+        let end = try time()
+        let title = try longString()
+        return TravelScheduleChild(start: start, end: end, title: title)
+    }
+
+    /// Parses `%1h/10m Title` — a recurring break.
+    private func recurringChild() throws -> TravelRecurringChild {
+        let interval = try duration()
+        _ = try consume(type: .slash, message: "Expected '/' between interval and duration")
+        let breakDuration = try duration()
+        let title = try longString()
+        return TravelRecurringChild(interval: interval, duration: breakDuration, title: title)
+    }
+
     private func travelMode(from token: Token) -> TravelMode {
         switch token.type {
         case .drive: .drive

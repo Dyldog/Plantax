@@ -58,22 +58,38 @@ enum TravelDurationResolver {
                 destination: travel.destination
             )
 
-            if let start = travel.start {
-                let endTime = EventTime(
-                    offset: start.offset + duration,
-                    date: start.date
-                )
-                resolved.append(ClosedEvent(
-                    start: start,
-                    end: endTime,
-                    title: travel.title,
-                    line: travel.line
-                ))
+            if travel.children.isEmpty {
+                // No children — collapse into a simple event.
+                if let start = travel.start {
+                    let endTime = EventTime(
+                        offset: start.offset + duration,
+                        date: start.date
+                    )
+                    resolved.append(ClosedEvent(
+                        start: start,
+                        end: endTime,
+                        title: travel.title,
+                        line: travel.line
+                    ))
+                } else {
+                    resolved.append(DurationEvent(
+                        title: travel.title,
+                        line: travel.line,
+                        duration: duration
+                    ))
+                }
             } else {
-                resolved.append(DurationEvent(
+                // Keep as TravelEvent with the resolved duration so
+                // the Compiler can expand the schedule with children.
+                resolved.append(TravelEvent(
                     title: travel.title,
                     line: travel.line,
-                    duration: duration
+                    mode: travel.mode,
+                    origin: travel.origin,
+                    destination: travel.destination,
+                    start: travel.start,
+                    children: travel.children,
+                    resolvedDuration: duration
                 ))
             }
         }

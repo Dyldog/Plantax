@@ -20,6 +20,7 @@ public class Scanner {
     var line = 1
     var start = 0
     var current = 0
+    var atLineStart = true
     
     let source: String
     
@@ -54,13 +55,31 @@ public class Scanner {
         let char = advance()
         
         switch char {
+        case " ":
+            if atLineStart {
+                while peek() == " " { _ = advance() }
+                addToken(type: .indent, literal: current - start)
+                atLineStart = false
+            }
+            return
+        case "\n":
+            addToken(type: .newline)
+            line += 1
+            atLineStart = true
+            return
+        default:
+            break
+        }
+        
+        atLineStart = false
+        
+        switch char {
         case "@": addToken(type: .at)
+        case "%": addToken(type: .percent)
         case "#": addToken(type: .hash)
         case ":": addToken(type: .colon)
         case "/": addToken(type: .slash)
         case "-": try arrow()
-        case " ": break
-        case "\n": addToken(type: .newline); line += 1
         default:
             if char.isNumber {
                 number()

@@ -15,6 +15,10 @@ public struct TravelEvent: Event {
     public let destination: String
     /// Optional explicit start time (from an `@time` prefix).
     public let start: EventTime?
+    /// Child activities that occur during the travel (schedule windows, recurring breaks, etc.).
+    public let children: [TravelChild]
+    /// The resolved driving duration from MapKit, set by `TravelDurationResolver`.
+    public let resolvedDuration: TimeInterval?
 
     public var boundaries: (start: TimeInterval?, end: TimeInterval?) {
         (start?.offset, nil)

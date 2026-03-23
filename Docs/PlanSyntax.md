@@ -100,6 +100,56 @@ Events are compiled in order. Several types rely on their neighbours:
 | Free | Must follow an event that has an end time |
 | Open-end | Must be followed by an event that has a start time |
 
+## Travel Events
+
+A travel event calculates the driving/riding/walking duration between two locations using MapKit. The keyword (`DRIVE`, `RIDE`, or `WALK`) is followed by `origin -> destination`.
+
+```
+DRIVE Sydney -> Melbourne
+@9am WALK Hotel -> Conference Centre
+```
+
+### Travel Children
+
+Indented lines beneath a travel event describe activities that occur during the journey. There are two kinds:
+
+#### Schedule windows (`@start->end Title`)
+
+A clock-time window that activates whenever the wall-clock falls within its range. Useful for sleep or meal stops.
+
+```
+    @11pm->8am Sleep and camp
+    @12pm->1pm Lunch stop
+```
+
+#### Recurring breaks (`%interval/duration Title`)
+
+A break that triggers after every *interval* of accumulated driving time, lasting for *duration*.
+
+```
+    %1h/10m Rest stop
+    %2h/15m Stretch break
+```
+
+### Priority
+
+Children listed higher take precedence. If a schedule window and a recurring break would overlap, the higher-listed child is chosen.
+
+### Full travel example
+
+```
+DRIVE Sydney -> Melbourne
+    @11pm->8am Sleep and camp
+    %1h/10m Break
+```
+
+This calculates the driving duration from Sydney to Melbourne and produces a schedule that interleaves driving segments with:
+
+1. **Sleep and camp** — whenever the clock is between 11 pm and 8 am.
+2. **Break** — 10 minutes of rest after every hour of driving.
+
+Because "Sleep and camp" is listed first, it takes priority over breaks during its window.
+
 ## Full Example
 
 ```

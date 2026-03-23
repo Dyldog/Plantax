@@ -29,8 +29,12 @@ enum SyntaxHighlighter {
             return .teal
         case .drive, .ride, .walk:
             return .orange
+        case .percent:
+            return .purple
         case .word:
             return .primary
+        case .indent:
+            return .clear
         case .newline, .endOfFile:
             return .clear
         }

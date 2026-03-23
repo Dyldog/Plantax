@@ -22,6 +22,8 @@ public enum TokenType {
     case drive
     case ride
     case walk
+    case percent
+    case indent
 }
 
 public struct Token {
