@@ -105,7 +105,7 @@ public class Scanner {
     }
     
     private func identifier() {
-        while peek().isAlphanumeric { advance() }
+        while peek().isLetter { advance() }
         
         let type = keywords[currentLexeme] ?? .word
         

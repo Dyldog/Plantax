@@ -187,19 +187,31 @@ public class Parser {
     }
     
     private func duration() throws -> TimeInterval {
-        let number = TimeInterval(try number())
-        
-        if match(types: .minutes, .hours) {
-            let unit = previous()
-            
-            switch unit.type {
-            case .minutes: return number * 60
-            case .hours: return number * 60 * 60
-            default: break
-            }
+        var total: TimeInterval = 0
+
+        let value = TimeInterval(try number())
+
+        guard match(types: .minutes, .hours) else {
+            throw error(token: previous(), message: "Duration must be followed by 'm' or 'h'")
         }
-        
-        throw error(token: previous(), message: "Duration must be followed by 'm' or 'h'")
+
+        let unit = previous()
+        switch unit.type {
+        case .minutes: total += value * 60
+        case .hours:   total += value * 60 * 60
+        default: break
+        }
+
+        // Support compound durations like `3h30m`
+        if unit.type == .hours, check(type: .number) {
+            let minuteValue = TimeInterval(try number())
+            guard match(types: .minutes) else {
+                throw error(token: previous(), message: "Expected 'm' after minutes in compound duration")
+            }
+            total += minuteValue * 60
+        }
+
+        return total
     }
     
     private func longString() throws -> String {

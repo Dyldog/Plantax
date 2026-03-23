@@ -26,23 +26,51 @@ class PlannerViewModel: ObservableObject, EventCompiler {
     }
 }
 
+enum EditorType: String, CaseIterable {
+    case plain = "Plain"
+    case syntax = "Syntax"
+}
+
 struct PlannerView: View {
     @Binding var document: PlanDocument
     @StateObject private var viewModel: PlannerViewModel = .init()
+    @State private var editorType: EditorType = .syntax
     
     var body: some View {
         NavigationStack {
+            editor
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Picker("Editor", selection: $editorType) {
+                            ForEach(EditorType.allCases, id: \.self) { type in
+                                Text(type.rawValue).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+                .alert(item: $viewModel.errorMessage) { message in
+                    Alert(title: Text("Error"), message: Text(message))
+                }
+                .navigationDestination(item: $viewModel.compiledPlan) { plan in
+                    NewContentView(events: plan.events)
+                }
+        }
+        .hidingParentNavigationBar()
+    }
+
+    @ViewBuilder
+    private var editor: some View {
+        switch editorType {
+        case .plain:
             EditorView(text: $document.text) { input in
                 viewModel.didTapShow(with: input)
             }
-            .alert(item: $viewModel.errorMessage) { message in
-                Alert(title: Text("Error"), message: Text(message))
-            }
-            .navigationDestination(item: $viewModel.compiledPlan) { plan in
-                NewContentView(events: plan.events)
+        case .syntax:
+            SyntaxEditorView(text: $document.text) { input in
+                viewModel.didTapShow(with: input)
             }
         }
-        .hidingParentNavigationBar()
     }
 }
 
