@@ -78,7 +78,13 @@ public class Scanner {
         case "%": addToken(type: .percent)
         case "#": addToken(type: .hash)
         case ":": addToken(type: .colon)
-        case "/": addToken(type: .slash)
+        case "/":
+            if peek() == "/" {
+                // Line comment — consume everything until newline or EOF.
+                while !isAtEnd && peek() != "\n" { _ = advance() }
+            } else {
+                addToken(type: .slash)
+            }
         case "-": try arrow()
         default:
             if char.isNumber {
