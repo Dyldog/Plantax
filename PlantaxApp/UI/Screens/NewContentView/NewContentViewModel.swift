@@ -24,6 +24,14 @@ class NewContentViewModel: ObservableObject, EventCompiler {
         return makeRows(from: events)
     }
     
+    /// The ID of the first event row whose occurrence is `.present` (currently in progress).
+    var currentEventId: Int? {
+        rows.compactMap { row -> Int? in
+            guard case let .event(model) = row, model.occurrence == .present else { return nil }
+            return model.id
+        }.first
+    }
+    
     init(events: [FixedEvent]) {
         self.events = events
     }

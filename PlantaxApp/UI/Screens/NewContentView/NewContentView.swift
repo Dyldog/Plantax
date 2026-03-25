@@ -15,14 +15,22 @@ struct NewContentView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(viewModel.rows) { model in
-                    row(with: model)
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(viewModel.rows) { model in
+                        row(with: model)
+                            .id(model.id)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 24)
+            }
+            .onAppear {
+                if let activeId = viewModel.currentEventId {
+                    proxy.scrollTo(activeId, anchor: .top)
                 }
             }
-            .padding(.horizontal)
-            .padding(.bottom, 24)
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Plan")
