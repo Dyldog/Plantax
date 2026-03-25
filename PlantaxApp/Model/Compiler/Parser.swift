@@ -342,7 +342,7 @@ extension TimeInterval {
     
     private static func offset(for meridiem: Meridiem, at hour: Int) -> TimeInterval {
         switch meridiem {
-        case .am: hour == 12 ? TimeInterval(24) * .anHour : 0 // TODO: Fix for 12am at the start of the day
+        case .am: 0
         case .pm: TimeInterval(12) * .anHour
         }
     }
