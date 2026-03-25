@@ -219,13 +219,13 @@ struct NewContentView: View {
                     Text(timeDescription)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(durationColor(for: occurrence))
+                        .lineLimit(1)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
                                 .fill(durationColor(for: occurrence).opacity(0.12))
                         )
-                        .fixedSize()
                 }
 
                 trailing()
