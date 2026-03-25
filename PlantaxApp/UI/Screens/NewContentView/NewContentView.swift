@@ -68,7 +68,7 @@ struct NewContentView: View {
     // MARK: - Parent Row (collapsible)
 
     private func parentRow(with model: NewContentRowModel) -> some View {
-        let isCollapsed = viewModel.collapsedParents.contains(model.id)
+        let isCollapsed = !viewModel.expandedParents.contains(model.id)
 
         return Button {
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {

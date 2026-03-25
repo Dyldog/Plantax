@@ -12,8 +12,9 @@ import Combine
 class NewContentViewModel: ObservableObject, EventCompiler {
     let events: [FixedEvent]
     
-    /// IDs of parent rows whose children are currently collapsed.
-    var collapsedParents: Set<Int> = []
+    /// IDs of parent rows whose children are currently expanded.
+    /// Parents default to collapsed; toggling adds them here.
+    var expandedParents: Set<Int> = []
     
     /// Monotonically increasing counter used to assign unique row IDs.
     private var nextId = 0
@@ -29,10 +30,10 @@ class NewContentViewModel: ObservableObject, EventCompiler {
     
     func toggleCollapse(for rowId: Int) {
         objectWillChange.send()
-        if collapsedParents.contains(rowId) {
-            collapsedParents.remove(rowId)
+        if expandedParents.contains(rowId) {
+            expandedParents.remove(rowId)
         } else {
-            collapsedParents.insert(rowId)
+            expandedParents.insert(rowId)
         }
     }
     
@@ -136,7 +137,7 @@ class NewContentViewModel: ObservableObject, EventCompiler {
 
             let hasChildren = !slice.children.isEmpty
             let parentId = makeId()
-            let isCollapsed = collapsedParents.contains(parentId)
+            let isExpanded = expandedParents.contains(parentId)
 
             let title = slice.isContinuation
                 ? "\(slice.event.title) (cont.)"
@@ -153,7 +154,7 @@ class NewContentViewModel: ObservableObject, EventCompiler {
                 isContinuation: slice.isContinuation
             )))
 
-            if hasChildren, !isCollapsed {
+            if hasChildren, isExpanded {
                 for child in slice.children {
                     // Clamp child times to the day slice window.
                     let childStart = max(child.start, slice.start)
