@@ -159,7 +159,8 @@ class NewContentViewModel: ObservableObject, EventCompiler {
                 occurrence: occurrence(for: slice.start, and: slice.end),
                 isChild: false,
                 hasChildren: hasChildren,
-                isContinuation: slice.isContinuation
+                isContinuation: slice.isContinuation,
+                travelInfo: slice.event.travelInfo
             )))
 
             if hasChildren, isExpanded {

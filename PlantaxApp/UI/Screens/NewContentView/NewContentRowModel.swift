@@ -17,6 +17,8 @@ struct NewContentRowModel: Hashable, Equatable, Identifiable {
     let hasChildren: Bool
     /// `true` when this row represents a continuation of a multi-day event on a subsequent day.
     let isContinuation: Bool
+    /// Non-nil when this row represents a travel event.
+    let travelInfo: TravelInfo?
     
     init(
         id: Int,
@@ -26,7 +28,8 @@ struct NewContentRowModel: Hashable, Equatable, Identifiable {
         occurrence: Occurrence,
         isChild: Bool,
         hasChildren: Bool,
-        isContinuation: Bool = false
+        isContinuation: Bool = false,
+        travelInfo: TravelInfo? = nil
     ) {
         self.id = id
         self.title = title
@@ -36,6 +39,7 @@ struct NewContentRowModel: Hashable, Equatable, Identifiable {
         self.isChild = isChild
         self.hasChildren = hasChildren
         self.isContinuation = isContinuation
+        self.travelInfo = travelInfo
     }
     
     enum Occurrence {

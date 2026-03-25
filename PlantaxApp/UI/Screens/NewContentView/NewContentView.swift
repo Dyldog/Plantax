@@ -90,6 +90,7 @@ struct NewContentView: View {
                 occurrence: model.occurrence,
                 isContinuation: model.isContinuation,
                 trailing: {
+                    mapsButton(for: model.travelInfo)
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.tertiary)
@@ -148,7 +149,8 @@ struct NewContentView: View {
             timeDescription: model.timeDescription,
             time: model.time,
             occurrence: model.occurrence,
-            isContinuation: model.isContinuation
+            isContinuation: model.isContinuation,
+            trailing: { mapsButton(for: model.travelInfo) }
         )
         .cardStyle(occurrence: model.occurrence)
     }
@@ -240,6 +242,24 @@ struct NewContentView: View {
             .foregroundStyle(.secondary)
         }
         .withOccurrence(occurrence)
+    }
+
+    // MARK: - Maps Button
+    
+    @ViewBuilder
+    private func mapsButton(for travelInfo: TravelInfo?) -> some View {
+        if let url = travelInfo?.googleMapsURL {
+            Link(destination: url) {
+                Image(systemName: "map")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.12))
+                    )
+            }
+        }
     }
 
     // MARK: - Helpers

@@ -185,6 +185,12 @@ public class Compiler: EventVisitor {
             throw error(event: event, message: "Travel event without start time must follow an event with an end time")
         }
 
+        let info = TravelInfo(
+            mode: event.mode,
+            origin: event.origin,
+            destination: event.destination
+        )
+
         guard let driveDuration = event.resolvedDuration else {
             // Unresolved — use a placeholder.
             let placeholderDuration: TimeInterval = 30 * 60
@@ -192,7 +198,8 @@ public class Compiler: EventVisitor {
                 title: event.title,
                 timeDescription: "Travel (~30 min placeholder)",
                 start: start,
-                end: start.addingTimeInterval(placeholderDuration)
+                end: start.addingTimeInterval(placeholderDuration),
+                travelInfo: info
             )
         }
 
@@ -202,7 +209,8 @@ public class Compiler: EventVisitor {
                 title: event.title,
                 timeDescription: "Travel (\(driveDuration.durationString))",
                 start: start,
-                end: start.addingTimeInterval(driveDuration)
+                end: start.addingTimeInterval(driveDuration),
+                travelInfo: info
             )
         }
 
@@ -221,7 +229,8 @@ public class Compiler: EventVisitor {
             timeDescription: "Travel (\(driveDuration.durationString))",
             start: start,
             end: end,
-            children: expanded
+            children: expanded,
+            travelInfo: info
         )
     }
 
