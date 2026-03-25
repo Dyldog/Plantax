@@ -36,11 +36,20 @@ public class Parser {
     public func parseEvents() throws -> [Event] {
         var events: [Event] = []
         
+        skipEmptyLines()
+        
         while !isAtEnd {
             events.append(try event())
+            skipEmptyLines()
         }
         
         return events
+    }
+    
+    /// Consumes consecutive newline tokens so that empty lines
+    /// between events are silently ignored.
+    private func skipEmptyLines() {
+        while match(types: .newline) { }
     }
     
     private func synchronise() {
