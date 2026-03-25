@@ -41,60 +41,139 @@ class NewContentViewModel: ObservableObject, EventCompiler {
         return nextId
     }
     
+    // MARK: - Day Slicing
+
+    /// A slice of an event that falls on a single calendar day.
+    private struct DaySlice {
+        let event: FixedEvent
+        /// Effective start clamped to the beginning of this day (or the event's real start on the first day).
+        let start: Date
+        /// Effective end clamped to the end of this day (or the event's real end on the last day).
+        let end: Date
+        /// Whether this is a continuation from a previous day (i.e. not the first day).
+        let isContinuation: Bool
+        /// Children whose time range overlaps this day slice.
+        let children: [FixedEvent]
+    }
+
+    /// Splits a single event into one `DaySlice` per calendar day it spans.
+    private static func daySlices(for event: FixedEvent) -> [DaySlice] {
+        let calendar = Calendar.current
+
+        let startOfFirstDay = calendar.startOfDay(for: event.start)
+        let startOfLastDay = calendar.startOfDay(for: event.end)
+
+        // Fast path: event fits in a single day.
+        if startOfFirstDay == startOfLastDay {
+            return [DaySlice(
+                event: event,
+                start: event.start,
+                end: event.end,
+                isContinuation: false,
+                children: event.children
+            )]
+        }
+
+        var slices: [DaySlice] = []
+        var currentDayStart = startOfFirstDay
+
+        while currentDayStart <= startOfLastDay {
+            guard let nextDayStart = calendar.date(byAdding: .day, value: 1, to: currentDayStart) else { break }
+
+            let sliceStart = max(event.start, currentDayStart)
+            let sliceEnd = min(event.end, nextDayStart)
+            let isContinuation = currentDayStart != startOfFirstDay
+
+            // Include children that overlap this day.
+            let dayChildren = event.children.filter { child in
+                child.start < sliceEnd && child.end > sliceStart
+            }
+
+            slices.append(DaySlice(
+                event: event,
+                start: sliceStart,
+                end: sliceEnd,
+                isContinuation: isContinuation,
+                children: dayChildren
+            ))
+
+            currentDayStart = nextDayStart
+        }
+
+        return slices
+    }
+
+    // MARK: - Row Building
+
     private func makeRows(from events: [FixedEvent]) -> [NewPlanRowModel] {
+        // Flatten all events into per-day slices, preserving order.
+        let allSlices = events.flatMap { Self.daySlices(for: $0) }
+
         var rows: [NewPlanRowModel] = []
-        var lastEvent: FixedEvent?
+        var lastSliceEnd: Date?
         var currentDateLabel: String?
-        
-        for event in events {
-            let dateLabel = Self.dateHeaderLabel(for: event.start)
-            
+
+        for slice in allSlices {
+            let dateLabel = Self.dateHeaderLabel(for: slice.start)
+
             if dateLabel != currentDateLabel {
                 currentDateLabel = dateLabel
                 rows.append(.dateHeader(dateLabel))
+                // Reset last slice end across day boundaries to avoid
+                // showing a free-time gap that spans the header.
+                lastSliceEnd = nil
             }
-            
-            if let lastEvent, lastEvent.end < event.start {
+
+            if let lastEnd = lastSliceEnd, lastEnd < slice.start {
                 rows.append(.freeTime(.init(
                     id: makeId(),
                     title: "Free",
                     timeDescription: "",
-                    time: "\(lastEvent.end.description) -> \(event.start.description)",
-                    occurrence: occurrence(for: lastEvent.end, and: event.start)
+                    time: "\(lastEnd.description) -> \(slice.start.description)",
+                    occurrence: occurrence(for: lastEnd, and: slice.start)
                 )))
             }
-            
-            let hasChildren = !event.children.isEmpty
+
+            let hasChildren = !slice.children.isEmpty
             let parentId = makeId()
             let isCollapsed = collapsedParents.contains(parentId)
-            
+
+            let title = slice.isContinuation
+                ? "\(slice.event.title) (cont.)"
+                : slice.event.title
+
             rows.append(.event(.init(
                 id: parentId,
-                title: event.title,
-                time: "\(event.start.description) -> \(event.end.description)",
-                timeDescription: event.timeDescription,
-                occurrence: occurrence(for: event.start, and: event.end),
+                title: title,
+                time: "\(slice.start.description) -> \(slice.end.description)",
+                timeDescription: slice.isContinuation ? "" : slice.event.timeDescription,
+                occurrence: occurrence(for: slice.start, and: slice.end),
                 isChild: false,
-                hasChildren: hasChildren
+                hasChildren: hasChildren,
+                isContinuation: slice.isContinuation
             )))
-            
+
             if hasChildren, !isCollapsed {
-                for child in event.children {
+                for child in slice.children {
+                    // Clamp child times to the day slice window.
+                    let childStart = max(child.start, slice.start)
+                    let childEnd = min(child.end, slice.end)
+
                     rows.append(.event(.init(
                         id: makeId(),
                         title: child.title,
-                        time: "\(child.start.description) -> \(child.end.description)",
+                        time: "\(childStart.description) -> \(childEnd.description)",
                         timeDescription: child.timeDescription,
-                        occurrence: occurrence(for: child.start, and: child.end),
+                        occurrence: occurrence(for: childStart, and: childEnd),
                         isChild: true,
                         hasChildren: false
                     )))
                 }
             }
-            
-            lastEvent = event
+
+            lastSliceEnd = slice.end
         }
-        
+
         return rows
     }
     

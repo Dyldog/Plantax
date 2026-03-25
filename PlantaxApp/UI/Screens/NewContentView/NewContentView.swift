@@ -80,6 +80,7 @@ struct NewContentView: View {
                 timeDescription: model.timeDescription,
                 time: model.time,
                 occurrence: model.occurrence,
+                isContinuation: model.isContinuation,
                 trailing: {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
@@ -138,7 +139,8 @@ struct NewContentView: View {
             title: model.title,
             timeDescription: model.timeDescription,
             time: model.time,
-            occurrence: model.occurrence
+            occurrence: model.occurrence,
+            isContinuation: model.isContinuation
         )
         .cardStyle(occurrence: model.occurrence)
     }
@@ -186,10 +188,17 @@ struct NewContentView: View {
         timeDescription: String,
         time: String,
         occurrence: NewContentRowModel.Occurrence,
+        isContinuation: Bool = false,
         @ViewBuilder trailing: () -> Trailing = { EmptyView() }
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
+                if isContinuation {
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
                 Text(title)
                     .font(.body.weight(.medium))
                     .foregroundStyle(occurrence == .past ? .secondary : .primary)

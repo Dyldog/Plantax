@@ -15,6 +15,28 @@ struct NewContentRowModel: Hashable, Equatable, Identifiable {
     let occurrence: Occurrence
     let isChild: Bool
     let hasChildren: Bool
+    /// `true` when this row represents a continuation of a multi-day event on a subsequent day.
+    let isContinuation: Bool
+    
+    init(
+        id: Int,
+        title: String,
+        time: String,
+        timeDescription: String,
+        occurrence: Occurrence,
+        isChild: Bool,
+        hasChildren: Bool,
+        isContinuation: Bool = false
+    ) {
+        self.id = id
+        self.title = title
+        self.time = time
+        self.timeDescription = timeDescription
+        self.occurrence = occurrence
+        self.isChild = isChild
+        self.hasChildren = hasChildren
+        self.isContinuation = isContinuation
+    }
     
     enum Occurrence {
         case past
