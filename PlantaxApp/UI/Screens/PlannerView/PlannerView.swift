@@ -5,8 +5,8 @@
 //  Created by Dylan Elliott on 13/1/2026.
 //
 
-import SwiftUI
 import Combine
+import SwiftUI
 
 struct CompiledPlan: Identifiable, Hashable {
     let id = UUID()
@@ -17,7 +17,7 @@ class PlannerViewModel: ObservableObject, EventCompiler {
     @Published var errorMessage: String?
     @Published var compiledPlan: CompiledPlan?
     @Published var isLoading = false
-    
+
     func didTapShow(with input: String) {
         isLoading = true
         Task {
@@ -46,7 +46,7 @@ struct PlannerView: View {
     @Binding var document: PlanDocument
     @StateObject private var viewModel: PlannerViewModel = .init()
     @State private var editorType: EditorType = .syntax
-    
+
     var body: some View {
         NavigationStack {
             editor

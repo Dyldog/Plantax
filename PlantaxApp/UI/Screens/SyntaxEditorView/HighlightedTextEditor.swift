@@ -54,7 +54,7 @@ struct HighlightedTextEditor: UIViewRepresentable {
         let defaultAttrs: [NSAttributedString.Key: Any] = [
             .font: monoFont,
             .foregroundColor: UIColor.label,
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
         ]
         let result = NSMutableAttributedString(string: source, attributes: defaultAttrs)
 
@@ -97,7 +97,8 @@ struct HighlightedTextEditor: UIViewRepresentable {
             let nsRange = NSRange(location: clampedLocation, length: max(clampedLength, 1))
 
             // Glyph bounding rect for the line
-            let glyphRange = layoutManager.glyphRange(forCharacterRange: nsRange, actualCharacterRange: nil)
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: nsRange, actualCharacterRange: nil)
             let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
             let inset = textView.textContainerInset
@@ -106,10 +107,12 @@ struct HighlightedTextEditor: UIViewRepresentable {
                 y: inset.top + lineRect.maxY + 2
             )
 
-            let hostingController = UIHostingController(rootView: LineErrorView(message: error.message))
+            let hostingController = UIHostingController(
+                rootView: LineErrorView(message: error.message))
             hostingController.view.backgroundColor = .clear
             let maxWidth = textView.bounds.width - inset.left - inset.right
-            let size = hostingController.view.sizeThatFits(CGSize(width: maxWidth, height: .greatestFiniteMagnitude))
+            let size = hostingController.view.sizeThatFits(
+                CGSize(width: maxWidth, height: .greatestFiniteMagnitude))
             hostingController.view.frame = CGRect(origin: origin, size: size)
             hostingController.view.tag = 9999
             textView.addSubview(hostingController.view)
@@ -130,7 +133,8 @@ struct HighlightedTextEditor: UIViewRepresentable {
             let selected = textView.selectedRange
             parent.text = textView.text
 
-            textView.attributedText = HighlightedTextEditor.buildAttributedString(from: textView.text)
+            textView.attributedText = HighlightedTextEditor.buildAttributedString(
+                from: textView.text)
 
             // Restore cursor position
             if selected.location <= (textView.text?.count ?? 0) {

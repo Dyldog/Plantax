@@ -11,7 +11,7 @@ struct EditorView: View {
     @Binding var text: String
 
     let onShowTapped: (String) -> Void
-    
+
     var body: some View {
         TextEditor(text: $text)
             .toolbar {

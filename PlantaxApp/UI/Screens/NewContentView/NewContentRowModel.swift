@@ -19,7 +19,7 @@ struct NewContentRowModel: Hashable, Equatable, Identifiable {
     let isContinuation: Bool
     /// Non-nil when this row represents a travel event.
     let travelInfo: TravelInfo?
-    
+
     init(
         id: Int,
         title: String,
@@ -41,12 +41,12 @@ struct NewContentRowModel: Hashable, Equatable, Identifiable {
         self.isContinuation = isContinuation
         self.travelInfo = travelInfo
     }
-    
+
     enum Occurrence {
         case past
         case present
         case future
-        
+
         var isPassed: Bool { self == .past }
     }
 }

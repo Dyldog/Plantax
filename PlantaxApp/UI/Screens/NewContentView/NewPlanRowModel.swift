@@ -11,7 +11,7 @@ enum NewPlanRowModel: Hashable, Equatable, Identifiable {
     case dateHeader(String)
     case event(NewContentRowModel)
     case freeTime(FreeTimeRowModel)
-    
+
     var id: Int {
         switch self {
         case .dateHeader(let label): label.hashValue

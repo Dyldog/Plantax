@@ -41,9 +41,9 @@ struct NewContentView: View {
     @ViewBuilder
     private func row(with model: NewPlanRowModel) -> some View {
         switch model {
-        case let .dateHeader(label):
+        case .dateHeader(let label):
             dateHeader(label)
-        case let .event(event):
+        case .event(let event):
             if event.isChild {
                 childRow(with: event)
             } else if event.hasChildren {
@@ -51,7 +51,7 @@ struct NewContentView: View {
             } else {
                 eventCard(with: event)
             }
-        case let .freeTime(event):
+        case .freeTime(let event):
             freeTimeRow(with: event)
         }
     }
@@ -245,7 +245,7 @@ struct NewContentView: View {
     }
 
     // MARK: - Maps Button
-    
+
     @ViewBuilder
     private func mapsButton(for travelInfo: TravelInfo?) -> some View {
         if let url = travelInfo?.googleMapsURL {
@@ -283,8 +283,8 @@ struct NewContentView: View {
 
 // MARK: - View Modifiers
 
-private extension View {
-    func cardStyle(occurrence: NewContentRowModel.Occurrence) -> some View {
+extension View {
+    fileprivate func cardStyle(occurrence: NewContentRowModel.Occurrence) -> some View {
         self
             .padding(14)
             .background(
@@ -306,7 +306,7 @@ private extension View {
     }
 
     @ViewBuilder
-    func withOccurrence(_ occurrence: NewContentRowModel.Occurrence) -> some View {
+    fileprivate func withOccurrence(_ occurrence: NewContentRowModel.Occurrence) -> some View {
         if occurrence == .past {
             self.opacity(0.6)
         } else {

@@ -10,9 +10,9 @@ import SwiftUI
 
 struct ContentView: View {
     private let pixelsPerHour: CGFloat = 40
-    
+
     @StateObject var viewModel: ContentViewModel = .init()
-    
+
     var body: some View {
         ScrollView {
             HStack(alignment: .top) {
@@ -21,9 +21,9 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private var timeline: some View {
-        SeparatedVStack(0 ..< 24) { hour in
+        SeparatedVStack(0..<24) { hour in
             Text("\(hour % 12):00\(hour <= 12 ? "am" : "pm")")
                 .frame(width: 100, height: pixelsPerHour - 1)
         } separator: {
@@ -33,7 +33,7 @@ struct ContentView: View {
         }
         .fixedSize()
     }
-    
+
     private var events: some View {
         ZStack(alignment: .top) {
             ForEach(viewModel.rows) { row in

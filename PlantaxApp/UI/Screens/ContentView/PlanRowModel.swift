@@ -12,6 +12,6 @@ struct PlanRowModel: Identifiable {
     let title: String
     let timeDescription: String
     let color: Color
-    let start: CGFloat // Hours from midnight
-    let duration: CGFloat // Hours
+    let start: CGFloat  // Hours from midnight
+    let duration: CGFloat  // Hours
 }

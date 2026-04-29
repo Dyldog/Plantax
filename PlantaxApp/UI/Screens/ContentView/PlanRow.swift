@@ -9,7 +9,7 @@ import SwiftUI
 
 struct PlanRow: View {
     let model: PlanRowModel
-    
+
     var body: some View {
         PlanRowView(model: model) { model in
             HStack(alignment: .top) {
@@ -17,9 +17,9 @@ struct PlanRow: View {
                     .padding()
                     .foregroundStyle(.white)
                     .bold()
-                
+
                 Spacer()
-                
+
                 Text(model.timeDescription)
                     .padding()
                     .foregroundStyle(.white)
