@@ -46,6 +46,7 @@ struct PlannerView: View {
     @Binding var document: PlanDocument
     @StateObject private var viewModel: PlannerViewModel = .init()
     @State private var editorType: EditorType = .syntax
+    @State private var isManualPresented = false
 
     var body: some View {
         NavigationStack {
@@ -66,6 +67,15 @@ struct PlannerView: View {
                         }
                         .pickerStyle(.segmented)
                     }
+
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Manual", systemImage: "questionmark.circle") {
+                            isManualPresented = true
+                        }
+                    }
+                }
+                .sheet(isPresented: $isManualPresented) {
+                    SyntaxManualView()
                 }
                 .alert(item: $viewModel.errorMessage) { message in
                     Alert(title: Text("Error"), message: Text(message))
