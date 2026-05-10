@@ -47,6 +47,7 @@ struct PlannerView: View {
     @StateObject private var viewModel: PlannerViewModel = .init()
     @State private var editorType: EditorType = .syntax
     @State private var isManualPresented = false
+    @State private var isNotesPresented = false
 
     var body: some View {
         NavigationStack {
@@ -69,10 +70,21 @@ struct PlannerView: View {
                     }
 
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Manual", systemImage: "questionmark.circle") {
-                            isManualPresented = true
+                        Menu {
+                            Button("Notes", systemImage: "note.text") {
+                                isNotesPresented = true
+                            }
+
+                            Button("Syntax Manual", systemImage: "questionmark.circle") {
+                                isManualPresented = true
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
                         }
                     }
+                }
+                .sheet(isPresented: $isNotesPresented) {
+                    NotesView(notes: $document.notes)
                 }
                 .sheet(isPresented: $isManualPresented) {
                     SyntaxManualView()

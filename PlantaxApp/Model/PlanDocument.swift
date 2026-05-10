@@ -16,9 +16,18 @@ struct PlanDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.plantaxPlan] }
 
     var text: String
+    var notes: String
 
-    init(text: String = "") {
+    init(text: String = "", notes: String = "") {
         self.text = text
+        self.notes = notes
+    }
+
+    // MARK: - Persistence
+
+    private struct Storage: Codable {
+        var text: String
+        var notes: String
     }
 
     init(configuration: ReadConfiguration) throws {
@@ -27,13 +36,20 @@ struct PlanDocument: FileDocument {
         else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        text = string
+
+        // Try JSON first, fall back to legacy plain-text
+        if let storage = try? JSONDecoder().decode(Storage.self, from: data) {
+            text = storage.text
+            notes = storage.notes
+        } else {
+            text = string
+            notes = ""
+        }
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        guard let data = text.data(using: .utf8) else {
-            throw CocoaError(.fileWriteUnknown)
-        }
+        let storage = Storage(text: text, notes: notes)
+        let data = try JSONEncoder().encode(storage)
         return FileWrapper(regularFileWithContents: data)
     }
 }
